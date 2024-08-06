@@ -223,6 +223,65 @@ def multi_asset_bates_simulation(S0, v0, r, T, params, corr_matrix, num_steps, n
     
     return S
 
+def plot_example_payoffs(K, B, T):
+    """
+    Plot three example payoff scenarios for the knock-in worst-of option.
+    All asset prices are shown as ratios of their initial price, starting at 1.
+    """
+    num_steps = 100
+    t = np.linspace(0, T*365, num_steps)
+    
+    fig, axs = plt.subplots(3, 1, figsize=(12, 18))
+    
+    # Scenario 1: All prices stay above barrier but below strike
+    axs[0].set_title("Scenario 1: No Knock-In, All Prices Below Strike")
+    for i in range(3):
+        price_ratio = 1 + 0.005 * t + 0.1 * np.sin(0.1*t * (i+1))
+        axs[0].plot(t, price_ratio, label=f'Asset {i+1}')
+    axs[0].axhline(y=K, color='r', linestyle='--', label='Strike')
+    axs[0].axhline(y=B, color='g', linestyle='--', label='Barrier')
+    axs[0].legend()
+    axs[0].set_xlabel('Time')
+    axs[0].set_ylabel('Price Ratio (Current/Initial)')
+    axs[0].text(T, K, 'Payoff: $0', verticalalignment='bottom')
+    axs[0].set_ylim(0.5, 1.4)
+    
+    # Scenario 2: Knock-in is hit but all end up above strike
+    axs[1].set_title("Scenario 2: Knock-In Occurs, All Prices End Above Strike")
+    for i in range(3):
+        price_ratio = 1 + 0.01 * t + 0.3 * np.sin(0.55 * t *(i+1))
+        #price_ratio = np.maximum(price_ratio, B * 0.99)  # Ensure knock-in occurs
+        axs[1].plot(t, price_ratio, label=f'Asset {i+1}')
+    axs[1].axhline(y=K, color='r', linestyle='--', label='Strike')
+    axs[1].axhline(y=B, color='g', linestyle='--', label='Barrier')
+    axs[1].legend()
+    axs[1].set_xlabel('Time')
+    axs[1].set_ylabel('Price Ratio (Current/Initial)')
+    axs[1].text(T, K, 'Payoff: $0', verticalalignment='bottom')
+    axs[1].set_ylim(0.5, 1.4)
+    
+    # Scenario 3: Knock-in is hit and worst price stays below strike
+    axs[2].set_title("Scenario 3: Knock-In Occurs, Worst Price Ends Below Strike")
+    for i in range(3):
+        if i == 0:
+            price_ratio = 1 - 0.02 * t + 0.15 * np.sin(0.8 * t)
+        else:
+            price_ratio = 1 + 0.005 * t + 0.1 * i * np.sin(0.6 * t * i)
+        #price_ratio = np.maximum(price_ratio, B * 0.99)  # Ensure knock-in occurs
+        axs[2].plot(t, price_ratio, label=f'Asset {i+1}')
+    axs[2].axhline(y=K, color='r', linestyle='--', label='Strike')
+    axs[2].axhline(y=B, color='g', linestyle='--', label='Barrier')
+    axs[2].legend()
+    axs[2].set_xlabel('Time')
+    axs[2].set_ylabel('Price Ratio (Current/Initial)')
+    worst_final_price_ratio = min(price_ratio[-1] for price_ratio in [1 - 0.02 * t + 0.15 * np.sin(0.8 * t), 1 + 0.005 * t + 0.1 * i * np.sin(0.6 * t), 1 + 0.005 * t + 0.1 * i * np.sin(1.2 * t)])
+    payoff_ratio = max(K - worst_final_price_ratio, 0)
+    axs[2].text(T, K, f'Payoff: {payoff_ratio:.2f} × Initial Price', verticalalignment='bottom')
+    axs[2].set_ylim(0.5, 1.4)
+    
+    plt.tight_layout()
+    return fig
+
 # Run simulation
 S0 = prices.iloc[-1].values
 v0 = realized_variance.iloc[-1].values
@@ -241,6 +300,22 @@ payoffs = calculate_knockin_worst_of_payoff(S, K, knock_in_barrier)
 
 # Calculate premium and APY
 premium_pct, apy = calculate_premium_and_apy(payoffs, notional, r, T)
+
+st.header('Example Payoff Scenarios')
+st.write("""
+The following graphs illustrate three possible scenarios for the knock-in worst-of put option:
+1. No knock-in occurs, and all prices end below the strike price.
+2. Knock-in occurs, but all prices end above the strike price.
+3. Knock-in occurs, and the worst-performing asset ends below the strike price.
+""")
+
+example_fig = plot_example_payoffs(K, knock_in_barrier, T)
+st.pyplot(example_fig)
+
+st.write("""
+Note: These are simplified examples and do not represent actual simulations. They are meant to illustrate 
+the concept of the knock-in worst-of put option and how the payoff is determined under different scenarios.
+""")
 
 # Display premium and APY
 st.header('Option Premium and APY')
