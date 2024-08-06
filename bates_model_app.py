@@ -27,7 +27,7 @@ def calculate_realized_variance(returns, window=30, min_periods=10):
     return annualized_variance
 
 # Function to calculate exponentially weighted correlation
-def exponential_weighted_correlation(data, span=30):
+def exponential_weighted_correlation(data, span=10):
     ewm = data.ewm(span=span)
     means = ewm.mean()
     centered = data - means
@@ -35,7 +35,11 @@ def exponential_weighted_correlation(data, span=30):
     
     # Extract the last timestamp for all pairs
     last_timestamp = cov.index.get_level_values(0)[-1]
-    corr = cov.loc[last_timestamp].corr()
+    cov_matrix = cov.loc[last_timestamp]
+    
+    # Calculate correlation matrix from covariance
+    std_dev = np.sqrt(np.diag(cov_matrix))
+    corr = cov_matrix / np.outer(std_dev, std_dev)
     
     return corr
 
@@ -99,7 +103,7 @@ st.title('Multi-Asset Bates Model for Cryptocurrencies: Knock-In Worst-of Option
 
 # Sidebar for user inputs
 st.sidebar.header('Input Parameters')
-tickers = st.sidebar.multiselect('Select Cryptocurrencies', ['BTC-USD', 'ETH-USD', 'LINK-USD', 'ADA-USD', 'DOT-USD', 'XRP-USD'], default=['BTC-USD', 'ETH-USD', 'LINK-USD'])
+tickers = st.sidebar.multiselect('Select Cryptocurrencies', ['BTC-USD', 'ETH-USD', 'BNB-USD', 'LINK-USD', 'UNI-USD', 'SOL-USD', 'ARB-USD', 'RPL-USD'], default=['BTC-USD', 'ETH-USD', 'LINK-USD'])
 days = st.sidebar.slider('Number of days for historical data', 30, 365, 30)
 simulation_days = st.sidebar.slider('Number of days to simulate', 1, 365, 30)
 num_simulations = st.sidebar.slider('Number of simulations', 1000, 50000, 10000)
@@ -223,6 +227,7 @@ def multi_asset_bates_simulation(S0, v0, r, T, params, corr_matrix, num_steps, n
     
     return S
 
+#todo: make these always be more determinate and use chosen underlyings and amount of tokens not always 3
 def plot_example_payoffs(K, B, T):
     """
     Plot three example payoff scenarios for the knock-in worst-of option.
