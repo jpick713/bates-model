@@ -102,7 +102,7 @@ st.sidebar.header('Input Parameters')
 tickers = st.sidebar.multiselect('Select Cryptocurrencies', ['BTC-USD', 'ETH-USD', 'LINK-USD', 'ADA-USD', 'DOT-USD', 'XRP-USD'], default=['BTC-USD', 'ETH-USD', 'LINK-USD'])
 days = st.sidebar.slider('Number of days for historical data', 30, 365, 30)
 simulation_days = st.sidebar.slider('Number of days to simulate', 1, 365, 30)
-num_simulations = st.sidebar.slider('Number of simulations', 100, 10000, 1000)
+num_simulations = st.sidebar.slider('Number of simulations', 1000, 50000, 10000)
 notional = st.sidebar.number_input('Notional Amount ($)', min_value=1000, value=10000, step=1000)
 strike_pct = st.sidebar.slider('Strike Price (% of initial price)', 80, 120, 100, 1)
 knock_in_pct = st.sidebar.select_slider('Knock-In Barrier (% of initial price)', options=range(10, 95, 5), value=80)
@@ -272,6 +272,11 @@ for i, ticker in enumerate(tickers):
     annualized_vol = np.std(returns_sim) * np.sqrt(365)  # Annualized volatility
     
     st.subheader(ticker)
+    stringVol = f'Annualized Volatility: {annualized_vol:.2%}'
+    if annualized_vol < vol_cap_pct / 100:
+        st.write(stringVol)
+    else:
+        stringVol += f' Volatility capped at: {vol_cap_pct} %'
     st.write(f'Annualized Volatility: {annualized_vol:.2%}')
     st.write(f'95% VaR: {-var_95:.2%}')
     st.write(f'99% VaR: {-var_99:.2%}')
@@ -291,9 +296,9 @@ knock_in_prob = np.mean(np.any(np.min(S / S[:, 0, :][:, np.newaxis, :], axis=2) 
 st.header('Knock-In Probability')
 st.write(f'Probability of Knock-In: {knock_in_prob:.2f}%')
 
-st.write("""
+st.write(f'''
 Note: This app prices a European knock-in worst-of put option on the selected cryptocurrencies using a multi-asset Bates model.
 The option knocks in if any of the assets touch or go below the knock-in barrier at any time during the option's life.
 If knocked in, the payoff at expiration is based on the worst-performing asset.
 Initial volatilities are capped at {vol_cap_pct} %.
-""")
+''')
